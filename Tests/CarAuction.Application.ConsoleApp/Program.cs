@@ -25,9 +25,12 @@ namespace CarAuction.Application.ConsoleApp
 
             // Test integrations
 
-            await InsertTestDataAsync();
-
-            await CreateAuctionBidAsync();
+            var insertTestData = _configuration!.GetValue<bool>("PopulateData");
+            if (insertTestData)
+            {
+                await InsertTestDataAsync();
+                await CreateAuctionBidAsync();
+            }
 
             await CreateDuplicateVehicleAsync();
         }
@@ -190,6 +193,9 @@ namespace CarAuction.Application.ConsoleApp
                 VehicleUniqueIdentifier = vehicle.VehicleUniqueIdentifier,
                 VehicleModelID = vehicle.VehicleModelID.GetValueOrDefault()
             });
+
+            if (createEntityResponse.Success)
+                throw new InvalidOperationException("A duplicate vehicle should not be possible to create");
         }
 
         public static async Task CreateAuctionBidAsync()
