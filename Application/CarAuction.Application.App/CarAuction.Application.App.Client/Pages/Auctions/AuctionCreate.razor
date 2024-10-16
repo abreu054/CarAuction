@@ -1,0 +1,143 @@
+﻿@page "/auctions/create"
+@using CarAuction.Business.Core
+@using CarAuction.Structure.Dto.Read
+@using CarAuction.Structure.Dto.Search
+@using CarAuction.Structure.Dto.Write
+@using Microsoft.AspNetCore.Authorization
+@attribute [Authorize]
+@inject HttpClient httpClient
+@inject NavigationManager navigationManager
+@inject IDialogService? DialogService
+
+<PageTitle>CarAuctions - AuctionCreate</PageTitle>
+
+<MudStack Class="mt-5">
+    <EditForm Model="@form" OnSubmit="OnSubmitAsync">
+        <DataAnnotationsValidator />
+        <MudGrid>
+            <!-- Status -->            
+            <MudItem xs="12">
+                <MudCard>
+                    <MudCardContent>
+                        <MudStack Row="true">
+                            <MudSelect T="AuctionStatus" @bind-Value="form.AuctionStatus">
+                                @foreach (var auctionStatus in AuctionStatuses)
+                                {
+                                    <MudSelectItem Value="auctionStatus">@(auctionStatus.ToString())</MudSelectItem>
+                                }
+                            </MudSelect>
+                        </MudStack>
+                    </MudCardContent>
+                </MudCard>
+            </MudItem>
+            <!-- Start and end date -->
+            <MudItem xs="6">
+                <MudCard>
+                    <MudCardContent>
+                        <MudStack Row="true">
+                            <MudDatePicker @bind-Date="formAuctionStartDate" Label="Start date" />
+                        </MudStack>
+                    </MudCardContent>
+                </MudCard>
+            </MudItem>
+            <MudItem xs="6">
+                <MudCard>
+                    <MudCardContent>
+                        <MudStack Row="true">
+                            <MudDatePicker @bind-Date="formAuctionEndDate" Label="End dates" />
+                        </MudStack>
+                    </MudCardContent>
+                </MudCard>
+            </MudItem>
+            <!-- Vehicle -->
+            <MudItem xs="6">
+                <MudCard>
+                    <MudCardContent>
+                        <MudStack Row="true">
+                            <MudSelect T="int" @bind-Value="form.VehicleID" Label="Vehicle">
+                                <MudSelectItem Value="0">Select vehicle</MudSelectItem>
+                                @foreach (var vehicle in Vehicles)
+                                {
+                                    <MudSelectItem Value="vehicle.VehicleID">@($"{vehicle.VehicleManufacturerName} {vehicle.VehicleModelName}: {vehicle.VehicleUniqueIdentifier}")</MudSelectItem>
+                                }
+                            </MudSelect>
+                        </MudStack>
+                    </MudCardContent>
+                </MudCard>
+            </MudItem>            
+            <!-- Submit -->
+            <MudItem xs="12">
+                <MudPaper Elevation="0" Class="d-flex flex-row flex-grow-1 gap-4">
+                    <MudPaper Elevation="0">
+                        <MudButton ButtonType="ButtonType.Submit" Variant="Variant.Filled"
+                                   Color="Color.Primary" Class="ml-auto">
+                            Create
+                        </MudButton>
+                    </MudPaper>
+                </MudPaper>
+            </MudItem>
+        </MudGrid>
+        <MudGrid>
+            <MudItem>
+                <MudPaper Elevation="0">
+                    @foreach (var formError in FormErrors)
+                    {
+                        <MudText Color="@(Color.Error)">@(formError)</MudText>
+                    }
+                </MudPaper>
+            </MudItem>
+        </MudGrid>
+    </EditForm>
+</MudStack>
+
+@code {
+    protected VehicleDetailResponseDto[] Vehicles = [];
+
+    protected DateTime? formAuctionStartDate = DateTime.Today;
+
+    protected DateTime? formAuctionEndDate = DateTime.Today;
+
+    protected CreateAuctionRequestDto form = new();
+
+    protected List<string> FormErrors = new();
+
+    protected AuctionStatus[] AuctionStatuses = [AuctionStatus.Active, AuctionStatus.Inactive];
+
+    protected override async Task OnInitializedAsync()
+    {
+        var vehicles = await httpClient.GetFromJsonAsync<VehicleDetailResponseDto[]>($"{navigationManager.BaseUri}api/vehicles/list");
+        if (vehicles != null) Vehicles = vehicles;
+
+        await base.OnInitializedAsync();
+    }
+
+    protected async Task OnSubmitAsync(EditContext context)
+    {
+        form.AuctionStartDate = formAuctionStartDate.GetValueOrDefault();
+        form.AuctionEndDate = formAuctionEndDate.GetValueOrDefault();
+
+        if (!context.Validate())
+        {
+            FormErrors = context.GetValidationMessages().ToList();
+
+            return;
+        }
+        else
+        {
+            FormErrors.Clear();
+
+            var httpResponseMessage = await httpClient.PostAsJsonAsync<CreateAuctionRequestDto>($"{navigationManager.BaseUri}api/auctions/create", form);
+            if (httpResponseMessage.IsSuccessStatusCode)
+            {
+                await DialogService.ShowMessageBox("Result", "Auction created");
+            }
+            else
+            {
+                var response = await httpResponseMessage.Content.ReadFromJsonAsync<CreateEntityResponseDto>();
+                await DialogService.ShowMessageBox("Result", response.Message);
+            }
+        }
+
+        StateHasChanged();
+    }
+}

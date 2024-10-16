@@ -1,0 +1,79 @@
+﻿@page "/auctions"
+@using CarAuction.Business.Core
+@using CarAuction.Structure.Dto.Read
+@using CarAuction.Structure.Dto.Search
+@using CarAuction.Structure.Dto.Write
+@using Microsoft.AspNetCore.Authorization
+@attribute [Authorize]
+@inject NavigationManager navigationManager
+@inject HttpClient httpClient
+@inject IDialogService? DialogService
+
+<PageTitle>CarAuctions - Auctions</PageTitle>
+
+<MudStack Row="true" Class="pt-5">
+    <MudButton Variant="Variant.Outlined" Color="Color.Primary" Href="/auctions/create">
+        Create
+    </MudButton>
+</MudStack>
+
+<MudDivider DividerType="DividerType.FullWidth" />
+
+<MudContainer MaxWidth="MaxWidth.ExtraLarge" Class="mt-5">
+    <MudGrid>
+        @foreach (var auction in Auctions)
+        {
+            <MudItem xs="3">
+                <MudCard>
+                    <MudCardContent>
+                        <MudText Typo="Typo.h5">@($"{auction.VehicleManufacturerName} {auction.VehicleModelName}")</MudText>
+                        <MudText Typo="Typo.body1">Status: @auction.AuctionStatus</MudText>
+                        <MudText Typo="Typo.body2">Identifier: @($"{auction.VehicleUniqueIdentifier}")</MudText>
+                        <MudText Typo="Typo.body2">Current bid: @auction.AuctionCurrentBid</MudText>
+                    </MudCardContent>
+                    <MudCardActions>
+                        <MudButton Variant="Variant.Filled" Color="Color.Primary" OnClick="(() => OnSubmitAsync(auction))">Change status</MudButton>
+                    </MudCardActions>
+                </MudCard>
+            </MudItem>
+        }
+    </MudGrid>
+</MudContainer>
+
+@code {
+    protected AuctionDetailResponseDto[] Auctions = [];
+
+    protected override async Task OnInitializedAsync()
+    {
+        var formData = new AuctionSearchParamsDto();
+
+        var responseMessage = await httpClient.PostAsJsonAsync($"{navigationManager.BaseUri}api/auctions/search", formData);
+        var auctions = await responseMessage.Content.ReadFromJsonAsync<AuctionDetailResponseDto[]>();
+        if (auctions != null) Auctions = auctions;
+
+        await base.OnInitializedAsync();
+    }
+
+    protected async Task OnSubmitAsync(AuctionDetailResponseDto auction)
+    {
+        var form = new UpdateAuctionRequestDto()
+        {
+            AuctionID = auction.AuctionID,
+            AuctionStatus = auction.AuctionStatus == AuctionStatus.Active ? AuctionStatus.Inactive : AuctionStatus.Active
+        };
+
+        var httpResponseMessage = await httpClient.PatchAsJsonAsync<UpdateAuctionRequestDto>($"{navigationManager.BaseUri}api/auctions/{auction.AuctionID}", form);
+        if (httpResponseMessage.IsSuccessStatusCode)
+        {
+            await DialogService.ShowMessageBox("Result", "Auction updated");
+            auction.AuctionStatus = form.AuctionStatus;
+        }
+        else
+        {
+            var response = await httpResponseMessage.Content.ReadFromJsonAsync<UpdateEntityResponseDto>();
+            await DialogService.ShowMessageBox("Result", response.Message);
+        }
+
+        StateHasChanged();
+    }
+}

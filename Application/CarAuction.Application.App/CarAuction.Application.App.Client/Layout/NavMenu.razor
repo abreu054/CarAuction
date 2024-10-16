@@ -1,0 +1,52 @@
+﻿@implements IDisposable
+
+@inject NavigationManager NavigationManager
+
+<MudNavMenu>
+    <MudNavLink Href="/" Match="NavLinkMatch.All">Home</MudNavLink>
+    <MudNavLink Href="/lista-de-compras" Match="NavLinkMatch.Prefix"></MudNavLink>    
+    <MudNavGroup Title="Account" Expanded="false">
+        <AuthorizeView>
+            <Authorized>
+                <MudNavLink Href="Account/Manage" Match="NavLinkMatch.Prefix">Manage</MudNavLink>
+                <MudNavLink Href="Account/Logout" Match="NavLinkMatch.Prefix">Logout</MudNavLink>
+            </Authorized>
+            <NotAuthorized>
+                <MudNavLink Href="Account/Login" Match="NavLinkMatch.Prefix">Login</MudNavLink>
+                <MudNavLink Href="Account/Register" Match="NavLinkMatch.Prefix">Register</MudNavLink>                
+            </NotAuthorized>
+        </AuthorizeView>
+    </MudNavGroup>
+    <AuthorizeView>
+        <Authorized>
+            <MudNavGroup Title="Back Office" Expanded="true">
+                <MudNavLink Href="/manufacturers" Match="NavLinkMatch.Prefix">Manage manufacturers</MudNavLink>
+                <MudNavLink Href="/models" Match="NavLinkMatch.Prefix">Manage models</MudNavLink>
+                <MudNavLink Href="/vehicles" Match="NavLinkMatch.Prefix">Manage vehicles</MudNavLink>
+                <MudNavLink Href="/auctions" Match="NavLinkMatch.Prefix">Manage auctions</MudNavLink>
+            </MudNavGroup>
+        </Authorized>        
+    </AuthorizeView>
+</MudNavMenu>
+
+@code {
+    private string? currentUrl;
+
+    protected override void OnInitialized()
+    {
+        currentUrl = NavigationManager.ToBaseRelativePath(NavigationManager.Uri);
+        NavigationManager.LocationChanged += OnLocationChanged;
+    }
+
+    private void OnLocationChanged(object? sender, LocationChangedEventArgs e)
+    {
+        currentUrl = NavigationManager.ToBaseRelativePath(e.Location);
+        StateHasChanged();
+    }
+
+    public void Dispose()
+    {
+        NavigationManager.LocationChanged -= OnLocationChanged;
+    }
+}
+

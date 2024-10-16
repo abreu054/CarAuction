@@ -1,0 +1,81 @@
+﻿@page "/manufactures/create"
+@using CarAuction.Structure.Dto.Read
+@using CarAuction.Structure.Dto.Write
+@using Microsoft.AspNetCore.Authorization
+@attribute [Authorize]
+@inject NavigationManager navigationManager
+@inject HttpClient httpClient
+@inject IDialogService? DialogService
+
+<PageTitle>Car Auction - ManufacturersCreate</PageTitle>
+
+<MudContainer Class="mt5">
+    <EditForm Model="@form" OnSubmit="OnSubmitAsync">
+        <DataAnnotationsValidator />
+        <MudGrid>                 
+            <MudItem xs="12">
+                <MudCard>
+                    <MudCardContent>
+                        <MudStack Row="true">
+                            <MudTextField Label="Name" HelperText="Ex: Seat" @bind-Value="form.VehicleManufacturerName" Clearable />
+                        </MudStack>
+                    </MudCardContent>
+                </MudCard>
+            </MudItem>
+            <MudItem xs="12" sm="12">
+                <MudPaper Elevation="0" Class="d-flex flex-row flex-grow-1 gap-4">
+                    <MudPaper Elevation="0">
+                        <MudButton ButtonType="ButtonType.Submit" Variant="Variant.Filled"
+                                   Color="Color.Primary" EndIcon="@(Icons.Material.Filled.Done)"
+                                   Class="ml-auto">
+                            Create
+                        </MudButton>
+                    </MudPaper>
+                </MudPaper>
+            </MudItem>
+        </MudGrid>
+        <MudGrid>
+            <MudItem>
+                <MudPaper Elevation="0">
+                    @foreach (var formError in FormErrors)
+                    {
+                        <MudText Color="@(Color.Error)">@(formError)</MudText>
+                    }
+                </MudPaper>
+            </MudItem>
+        </MudGrid>
+    </EditForm>
+</MudContainer>
+
+@code {
+    public CreateVehicleManufacturerRequestDto form = new();
+
+    public List<string> FormErrors = new();
+
+    public async Task OnSubmitAsync(EditContext context)
+    {
+        if (!context.Validate())
+        {
+            FormErrors = context.GetValidationMessages().ToList();
+
+            return;
+        }
+        else 
+        { 
+            FormErrors.Clear(); 
+
+            var httpResponseMessage = await httpClient.PostAsJsonAsync<CreateVehicleManufacturerRequestDto>($"{navigationManager.BaseUri}api/manufacturers/create", form);
+            if (httpResponseMessage.IsSuccessStatusCode)
+            {
+                await DialogService.ShowMessageBox("Result", "Entity created");
+            }
+            else
+            {
+                var response = await httpResponseMessage.Content.ReadFromJsonAsync<CreateEntityResponseDto>();
+                await DialogService.ShowMessageBox("Result", response?.Message);
+            }
+        }
+
+        StateHasChanged();
+    }
+}

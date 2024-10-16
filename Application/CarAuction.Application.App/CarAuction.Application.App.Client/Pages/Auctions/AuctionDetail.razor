@@ -1,0 +1,110 @@
+﻿@page "/auction/{Id:int}"
+@using CarAuction.Structure.Dto.Read
+@using CarAuction.Structure.Dto.Write
+@using Microsoft.AspNetCore.Authorization
+@attribute [Authorize]
+@inject HttpClient httpClient
+@inject NavigationManager navigationManager
+@inject IDialogService? DialogService
+
+<PageTitle>Car auction - Auction Detail</PageTitle>
+
+<MudContainer>
+    <MudStack>
+        <MudText Typo="Typo.h5">Manufacturer: @($"{AuctionDetailDto.VehicleManufacturerName}")</MudText>
+        <MudText Typo="Typo.h5">Model: @($"{AuctionDetailDto.VehicleModelName}")</MudText>
+
+        <MudText>Currentbid: @(AuctionDetailDto.AuctionCurrentBid)</MudText>
+        <MudText>Startingbid: @(AuctionDetailDto.AuctionStartingBid)</MudText>
+
+        <MudText>Ends at: @(AuctionDetailDto.AuctionEndDate.ToString("dd:MM:yyyy hh:mm:ss"))</MudText>
+    </MudStack>
+
+        <MudStack Class="mt-5">
+            <EditForm Model="@form" OnSubmit="OnSubmitAsync">
+                <DataAnnotationsValidator />
+                <MudGrid>
+                <!-- Bid -->
+                <MudItem xs="6">
+                    <MudCard>
+                        <MudCardContent>
+                            <MudStack Row="true">
+                                <MudNumericField T="double" Step="0.1" @bind-Value="form.AuctionBidAmount" Min="@(AuctionDetailDto.AuctionCurrentMinimunBid)" />
+                            </MudStack>
+                        </MudCardContent>
+                    </MudCard>
+                </MudItem>
+                <!-- Submit -->
+                <MudItem xs="6">
+                    <MudPaper Elevation="0" Class="d-flex flex-row flex-grow-1 gap-4">
+                        <MudPaper Elevation="0">
+                            <MudButton ButtonType="ButtonType.Submit" Variant="Variant.Filled"
+                                       Color="Color.Primary" Class="ml-auto">
+                                Bid
+                            </MudButton>
+                        </MudPaper>
+                    </MudPaper>
+                </MudItem>
+            </MudGrid>
+            <MudGrid>
+                <MudItem>
+                    <MudPaper Elevation="0">
+                        @foreach (var formError in FormErrors)
+                        {
+                            <MudText Color="@(Color.Error)">@(formError)</MudText>
+                        }
+                    </MudPaper>
+                </MudItem>
+            </MudGrid>
+        </EditForm>
+    </MudStack>
+</MudContainer>
+
+@code {
+    [Parameter]
+    public int Id { get; set; }
+
+    CreateAuctionBidRequestDto form = new();
+
+    List<string> FormErrors = new();
+
+    AuctionDetailResponseDto AuctionDetailDto = new();
+
+    protected override async Task OnInitializedAsync()
+    {
+        var auction = await httpClient.GetFromJsonAsync<AuctionDetailResponseDto>($"{navigationManager.BaseUri}api/auctions/{Id}");
+        if (auction != null) AuctionDetailDto = auction;
+
+        form.AuctionID = auction.AuctionID;
+
+        await base.OnInitializedAsync();
+    }
+
+    async Task OnSubmitAsync(EditContext context)
+    {
+        if (!context.Validate())
+        {
+            FormErrors = context.GetValidationMessages().ToList();
+
+            return;
+        }
+        else
+        {
+            FormErrors.Clear();
+
+            var httpResponseMessage = await httpClient.PostAsJsonAsync<CreateAuctionBidRequestDto>($"{navigationManager.BaseUri}api/auctionbids/create", form);
+            if (httpResponseMessage.IsSuccessStatusCode)
+            {
+                await DialogService.ShowMessageBox("Result", "Bid created with success");
+                await OnInitializedAsync();
+            }
+            else
+            {
+                var response = await httpResponseMessage.Content.ReadFromJsonAsync<CreateEntityResponseDto>();
+                await DialogService.ShowMessageBox("Result", response?.Message);
+            }
+        }
+
+        StateHasChanged();
+    }
+}

@@ -1,0 +1,185 @@
+﻿@page "/vehicles"
+@using CarAuction.Business.Core
+@using CarAuction.Structure.Dto.Read
+@using CarAuction.Structure.Dto.Search
+@using CarAuction.Structure.Dto.Write
+@using Microsoft.AspNetCore.Authorization
+@attribute [Authorize]
+@inject NavigationManager navigationManager
+@inject HttpClient httpClient
+@inject IDialogService? DialogService
+
+<PageTitle>CarAuctions - Vehicles</PageTitle>
+
+<MudStack Row="true" Class="pt-5">
+    <MudButton Variant="Variant.Outlined" Color="Color.Primary" Href="/vehicles/create">
+        Create
+    </MudButton>
+</MudStack>
+
+<MudDivider DividerType="DividerType.FullWidth" />
+
+<MudStack Class="mt-5">
+    <EditForm Model="@form" OnSubmit="OnSubmitSearchAsync">
+        <DataAnnotationsValidator />
+        <MudGrid>
+            <!-- Vehicle type and year -->
+            <MudItem xs="6">
+                <MudCard>
+                    <MudCardContent>
+                        <MudStack Row="true">
+                            <MudSelect T="VehicleType?" @bind-Value="form.VehicleType" Label="Vehicle type">
+                                <MudSelectItem T="VehicleType?" Value="null">Select type</MudSelectItem>
+                                @foreach (var vehicleType in VehicleTypes)
+                                {
+                                    <MudSelectItem T="VehicleType?" Value="vehicleType">@(vehicleType.ToString())</MudSelectItem>
+                                }
+                            </MudSelect>
+                        </MudStack>
+                    </MudCardContent>
+                </MudCard>
+            </MudItem>
+            <MudItem xs="6">
+                <MudCard>
+                    <MudCardContent>
+                        <MudStack Row="true">
+                            <MudNumericField @bind-Value="form.VehicleYear" Label="Year" Variant="Variant.Text" Min="0" Max="10" />
+                        </MudStack>
+                    </MudCardContent>
+                </MudCard>
+            </MudItem>
+            <!-- Vehicle manufacturer and model -->
+            <MudItem xs="6">
+                <MudCard>
+                    <MudCardContent>
+                        <MudStack Row="true">
+                            <MudSelect T="int" @bind-Value="form.VehicleManufacturerID" Label="Manufacturer">
+                                <MudSelectItem Value="0">Select manufacturer</MudSelectItem>
+                                @foreach (var manufacturer in Manufacturers)
+                                {
+                                    <MudSelectItem Value="manufacturer.VehicleManufacturerID">@(manufacturer.VehicleManufacturerName)</MudSelectItem>
+                                }
+                            </MudSelect>
+                        </MudStack>
+                    </MudCardContent>
+                </MudCard>
+            </MudItem>
+            <MudItem xs="6">
+                <MudCard>
+                    <MudCardContent>
+                        <MudStack Row="true">
+                            <MudSelect T="int" @bind-Value="form.VehicleModelID" Label="Model">
+                                <MudSelectItem Value="0">Select model</MudSelectItem>
+                                @if (form.VehicleManufacturerID > 0)
+                                {
+                                    foreach (var model in Models.Where(a => a.VehicleManufacturerID == form.VehicleManufacturerID))
+                                    {
+                                        <MudSelectItem Value="model.VehicleModelID">@(model.VehicleModelName)</MudSelectItem>
+                                    }
+                                }
+                            </MudSelect>
+                        </MudStack>
+                    </MudCardContent>
+                </MudCard>
+            </MudItem>
+            <!-- Vehicle identifier and in live auctions -->
+            <MudItem xs="6">
+                <MudCard>
+                    <MudCardContent>
+                        <MudStack Row="true">
+                            <MudTextField Label="Name" HelperText="Ex: STY32" @bind-Value="form.VehicleUniqueIdentifier" Clearable />
+                        </MudStack>
+                    </MudCardContent>
+                </MudCard>
+            </MudItem>
+            <MudItem xs="6">
+                <MudSwitch T="bool" @bind-Value="form.OnlyInActiveAuctions" Color="Color.Primary" Label="Only in live auctions" LabelPosition="LabelPosition.Start" />
+            </MudItem>            
+            <!-- Submit -->
+            <MudItem xs="12">
+                <MudPaper Elevation="0" Class="d-flex flex-row flex-grow-1 gap-4">
+                    <MudPaper Elevation="0">
+                        <MudButton ButtonType="ButtonType.Submit" Variant="Variant.Filled"
+                                   Color="Color.Primary" Class="ml-auto">
+                            Search
+                        </MudButton>
+                    </MudPaper>
+                </MudPaper>
+            </MudItem>
+        </MudGrid>
+        <MudGrid>
+            <MudItem>
+                <MudPaper Elevation="0">
+                    @foreach (var formError in FormErrors)
+                    {
+                        <MudText Color="@(Color.Error)">@(formError)</MudText>
+                    }
+                </MudPaper>
+            </MudItem>
+        </MudGrid>
+    </EditForm>
+</MudStack>
+
+<MudDivider DividerType="DividerType.FullWidth" />
+
+<MudContainer MaxWidth="MaxWidth.ExtraLarge" Class="mt-5">
+    <MudGrid>
+        @foreach (var vehicle in Vehicles)
+        {
+            <MudItem xs="3">
+                <MudCard>
+                    <MudCardContent>
+                        <MudText Typo="Typo.h5">@($"{vehicle.VehicleManufacturerName} {vehicle.VehicleModelName}")</MudText>
+                        <MudText Typo="Typo.body2">Identifier: @vehicle.VehicleUniqueIdentifier</MudText>
+                    </MudCardContent>
+                    <MudCardActions> </MudCardActions>
+                </MudCard>
+            </MudItem>
+        }
+    </MudGrid>
+</MudContainer>
+
+@code {
+    VehicleDetailResponseDto[] Vehicles = [];
+
+    VehicleManufacturerDetailResponseDto[] Manufacturers = [];
+
+    VehicleModelDetailResponseDto[] Models = [];
+
+    VehicleType[] VehicleTypes = [VehicleType.Hatchback, VehicleType.Sedan, VehicleType.SUV, VehicleType.Truck];
+    
+    VehiclesSearchParamsDto form = new();
+
+    List<string> FormErrors = new();
+        
+    VehicleType FormVehicleType;
+
+    protected override async Task OnInitializedAsync()
+    {
+        var vehicles = await httpClient.GetFromJsonAsync<VehicleDetailResponseDto[]>($"{navigationManager.BaseUri}api/vehicles/list");
+        if (vehicles != null) Vehicles = vehicles;
+
+        var manufacturers = await httpClient.GetFromJsonAsync<VehicleManufacturerDetailResponseDto[]>($"{navigationManager.BaseUri}api/manufacturers/list");
+        if (manufacturers != null) Manufacturers = manufacturers;
+
+        var models = await httpClient.GetFromJsonAsync<VehicleModelDetailResponseDto[]>($"{navigationManager.BaseUri}api/models/list");
+        if (models != null) Models = models;
+
+        await base.OnInitializedAsync();
+    }
+
+    async Task OnSubmitSearchAsync(EditContext context)
+    {
+        var httpResponseMessage = await httpClient.PostAsJsonAsync<VehiclesSearchParamsDto>($"{navigationManager.BaseUri}api/vehicles/search", form);
+        if (httpResponseMessage.IsSuccessStatusCode)
+        {
+            Vehicles = await httpResponseMessage.Content.ReadFromJsonAsync<VehicleDetailResponseDto[]>();
+        }
+        else
+        {
+            await DialogService.ShowMessageBox("Result", "Error while trying to fetch vehicles");
+        }
+
+        StateHasChanged();
+    }
+}

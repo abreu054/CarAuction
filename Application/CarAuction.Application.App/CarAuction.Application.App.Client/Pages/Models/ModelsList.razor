@@ -1,0 +1,46 @@
+﻿@page "/models"
+@using CarAuction.Structure.Dto.Read
+@using Microsoft.AspNetCore.Authorization
+@attribute [Authorize]
+@inject NavigationManager navigationManager
+@inject HttpClient httpClient
+
+<PageTitle>CarAuctions - Models</PageTitle>
+
+<MudStack Row="true" Class="pt-5">
+    <MudButton Variant="Variant.Outlined" Color="Color.Primary" Href="/models/create">
+        Create
+    </MudButton>
+</MudStack>
+
+<MudDivider DividerType="DividerType.FullWidth" />
+
+<MudContainer MaxWidth="MaxWidth.ExtraLarge" Class="mt-5">
+
+    <MudGrid>
+        @foreach (var model in Models)
+        {
+            <MudItem xs="3">
+                <MudCard>
+                    <MudCardContent>
+                        <MudText Typo="Typo.h5">@($"{model.VehicleManufacturerName} {model.VehicleModelName}")</MudText>
+                    </MudCardContent>
+                    <MudCardActions> </MudCardActions>
+                </MudCard>
+            </MudItem>
+        }
+    </MudGrid>
+</MudContainer>
+
+
+@code {
+    protected VehicleModelDetailResponseDto[] Models = [];
+
+    protected override async Task OnInitializedAsync()
+    {
+        var models = await httpClient.GetFromJsonAsync<VehicleModelDetailResponseDto[]>($"{navigationManager.BaseUri}api/models/list");
+        if (models != null) Models = models;
+
+        await base.OnInitializedAsync();
+    }
+}

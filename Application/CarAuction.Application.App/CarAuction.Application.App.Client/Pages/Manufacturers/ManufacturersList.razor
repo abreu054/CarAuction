@@ -1,0 +1,46 @@
+﻿@page "/manufacturers"
+@using CarAuction.Structure.Dto.Read
+@using Microsoft.AspNetCore.Authorization
+@attribute [Authorize]
+@inject NavigationManager navigationManager
+@inject HttpClient httpClient
+
+<PageTitle>CarAuctions - Manufacturers</PageTitle>
+
+<MudStack Row="true" Class="pt-5">
+    <MudButton Variant="Variant.Outlined" Color="Color.Primary" Href="/manufactures/create">
+        Create
+    </MudButton>
+</MudStack>
+
+<MudDivider DividerType="DividerType.FullWidth" />
+
+<MudContainer MaxWidth="MaxWidth.ExtraLarge" Class="mt-5">    
+    
+    <MudGrid>
+        @foreach (var manufacturer in Manufacturers)
+        {
+            <MudItem xs="3">
+                <MudCard>
+                    <MudCardContent>
+                        <MudText Typo="Typo.h5">@manufacturer.VehicleManufacturerName</MudText>                        
+                    </MudCardContent>
+                    <MudCardActions> </MudCardActions>
+                </MudCard>
+            </MudItem>
+        }
+    </MudGrid>
+</MudContainer>
+
+
+@code {
+    protected VehicleManufacturerDetailResponseDto[] Manufacturers = [];
+
+    protected override async Task OnInitializedAsync()
+    {
+        var manufacturers = await httpClient.GetFromJsonAsync<VehicleManufacturerDetailResponseDto[]>($"{navigationManager.BaseUri}api/manufacturers/list");
+        if (manufacturers != null) Manufacturers = manufacturers;
+
+        await base.OnInitializedAsync();
+    }
+}

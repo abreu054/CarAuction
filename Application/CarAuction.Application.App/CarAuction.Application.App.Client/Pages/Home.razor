@@ -1,0 +1,181 @@
+﻿@page "/"
+@using CarAuction.Business.Core
+@using CarAuction.Structure.Dto.Read
+@using CarAuction.Structure.Dto.Search
+@inject HttpClient httpClient
+@inject NavigationManager navigationManager
+@inject IDialogService? DialogService
+
+<PageTitle>CarAuctions - Live Auctions</PageTitle>
+
+<!-- Search auction -->
+<MudStack Class="mt-5">
+    <EditForm Model="@form" OnSubmit="OnSubmitAsync">
+        <DataAnnotationsValidator />
+        <MudGrid>
+            <MudItem xs="6">
+                <MudCard>
+                    <MudCardContent>
+                        <MudStack Row="true">
+                            <MudSelect T="VehicleType?" @bind-Value="form.VehicleType" Label="Vehicle type">
+                                <MudSelectItem T="VehicleType?" Value="null">Select type</MudSelectItem>
+                                @foreach (var vehicleType in VehicleTypes)
+                                {
+                                    <MudSelectItem T="VehicleType?" Value="vehicleType">@(vehicleType.ToString())</MudSelectItem>
+                                }
+                            </MudSelect>
+                        </MudStack>
+                    </MudCardContent>
+                </MudCard>
+            </MudItem>
+            <MudItem xs="6">
+                <MudCard>
+                    <MudCardContent>
+                        <MudStack Row="true">
+                            <MudNumericField @bind-Value="form.VehicleYear" Label="Year" Variant="Variant.Text" Min="0" Max="10" />
+                        </MudStack>
+                    </MudCardContent>
+                </MudCard>
+            </MudItem>     
+            <!-- Vehicle manufacturer and model -->
+            <MudItem xs="6">
+                <MudCard>
+                    <MudCardContent>
+                        <MudStack Row="true">
+                            <MudSelect T="int" @bind-Value="form.VehicleManufacturerID" Label="Manufacturer">
+                                <MudSelectItem Value="0">Select manufacturer</MudSelectItem>
+                                @foreach (var manufacturer in Manufacturers.Where(m => AllAuctions.Any(a => a.VehicleManufacturerID == m.VehicleManufacturerID)))
+                                {
+                                    <MudSelectItem Value="manufacturer.VehicleManufacturerID">@(manufacturer.VehicleManufacturerName)</MudSelectItem>
+                                }
+                            </MudSelect>
+                        </MudStack>
+                    </MudCardContent>
+                </MudCard>
+            </MudItem>
+            <MudItem xs="6">
+                <MudCard>
+                    <MudCardContent>
+                        <MudStack Row="true">
+                            <MudSelect T="int" @bind-Value="form.VehicleModelID" Label="Model">
+                                <MudSelectItem Value="0">Select model</MudSelectItem>
+                                @if(form.VehicleManufacturerID > 0)
+                                {
+                                    foreach (var model in Models.Where(a => a.VehicleManufacturerID == form.VehicleManufacturerID))
+                                    {
+                                        <MudSelectItem Value="model.VehicleModelID">@(model.VehicleModelName)</MudSelectItem>
+                                    }
+                                }
+                            </MudSelect>
+                        </MudStack>
+                    </MudCardContent>
+                </MudCard>
+            </MudItem>
+            <!-- Submit -->
+            <MudItem xs="12">
+                <MudPaper Elevation="0" Class="d-flex flex-row flex-grow-1 gap-4">
+                    <MudPaper Elevation="0">
+                        <MudButton ButtonType="ButtonType.Submit" Variant="Variant.Filled"
+                                   Color="Color.Primary" Class="ml-auto">
+                            Search
+                        </MudButton>
+                    </MudPaper>
+                </MudPaper>
+            </MudItem>
+        </MudGrid>
+        <MudGrid>
+            <MudItem>
+                <MudPaper Elevation="0">
+                    @foreach (var formError in FormErrors)
+                    {
+                        <MudText Color="@(Color.Error)">@(formError)</MudText>
+                    }
+                </MudPaper>
+            </MudItem>
+        </MudGrid>
+    </EditForm>
+</MudStack>
+
+<!-- List Auctions -->
+<MudContainer MaxWidth="MaxWidth.ExtraLarge" Class="mt-5">
+    <MudGrid>
+        @foreach(var auction in FilteredAuctions)
+        {
+            <MudItem xs="3">
+                <MudCard>                    
+                    <MudCardContent>
+                        <MudText Typo="Typo.h5">@(auction.VehicleManufacturerName + " " + auction.VehicleModelName)</MudText>
+                        <MudText Typo="Typo.body2">Ends at: @(auction.AuctionEndDate.ToString("dd-MM-yyy hh:mm"))</MudText>                        
+                    </MudCardContent>
+                    <MudCardActions>
+                        <MudButton Variant="Variant.Text" Color="Color.Primary" ButtonType="ButtonType.Button"
+                                   Href="@($"auction/{auction.AuctionID}")">
+                            See more
+                        </MudButton>  
+                    </MudCardActions>
+                </MudCard>
+            </MudItem>
+        }
+    </MudGrid>
+</MudContainer>
+
+@code{
+    AuctionDetailResponseDto[] FilteredAuctions = [];
+
+    AuctionDetailResponseDto[] AllAuctions = [];
+
+    VehicleManufacturerDetailResponseDto[] Manufacturers = [];
+
+    VehicleModelDetailResponseDto[] Models = [];
+
+    AuctionSearchParamsDto form = new() { AuctionStatus = AuctionStatus.Active };
+
+    List<string> FormErrors = new();
+
+    VehicleType[] VehicleTypes = [VehicleType.Hatchback, VehicleType.Sedan, VehicleType.SUV, VehicleType.Truck];
+
+    protected override async Task OnInitializedAsync()
+    {
+        var responseMessage = await httpClient.PostAsJsonAsync($"{navigationManager.BaseUri}api/auctions/search", form);
+        var auctions = await responseMessage.Content.ReadFromJsonAsync<AuctionDetailResponseDto[]>();
+        if (auctions != null)
+        {
+            FilteredAuctions = auctions;
+            AllAuctions = auctions;
+        }
+
+        var manufacturers = await httpClient.GetFromJsonAsync<VehicleManufacturerDetailResponseDto[]>($"{navigationManager.BaseUri}api/manufacturers/list");
+        if (manufacturers != null) Manufacturers = manufacturers;
+
+        var models = await httpClient.GetFromJsonAsync<VehicleModelDetailResponseDto[]>($"{navigationManager.BaseUri}api/models/list");
+        if (models != null) Models = models;
+
+        await base.OnInitializedAsync();
+    }
+
+    async Task OnSubmitAsync(EditContext context)
+    {
+        if (!context.Validate())
+        {
+            FormErrors = context.GetValidationMessages().ToList();
+
+            return;
+        }
+        else
+        {
+            FormErrors.Clear();
+
+            var httpResponseMessage = await httpClient.PostAsJsonAsync<AuctionSearchParamsDto>($"{navigationManager.BaseUri}api/auctions/search", form);
+            if (httpResponseMessage.IsSuccessStatusCode)
+            {
+                FilteredAuctions = await httpResponseMessage.Content.ReadFromJsonAsync<AuctionDetailResponseDto[]>();
+            }
+            else
+            {
+                await DialogService.ShowMessageBox("Result", "Error while trying to fetch auctions");
+            }
+        }
+
+        StateHasChanged();
+    }
+}
