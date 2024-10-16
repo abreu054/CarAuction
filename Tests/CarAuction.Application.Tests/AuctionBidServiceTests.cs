@@ -77,5 +77,26 @@ namespace CarAuction.Application.Tests
             createEntityResponse.Success.Should().BeFalse();
             createEntityResponse.Message.Should().BeEquivalentTo("Auction must be active");
         }
+
+        [Fact]
+        public async Task CreateAuctionBidAsync_ShouldReturnFalse_WhenAuctionEndData_IsPast()
+        {
+            var auctionBidDto = _fixture
+                .Build<CreateAuctionBidRequestDto>()
+                .With(dto => dto.AuctionID, 1)                
+                .Create();
+
+            _auctionRepositoryMock
+                .Setup(repo => repo.GetByIDAsync(auctionBidDto.AuctionID))
+                .ReturnsAsync(new Auction() 
+                { 
+                    AuctionStatus = Business.Core.AuctionStatus.Active,
+                    AuctionEndDate = DateTime.UtcNow.AddSeconds(-5)
+                });
+
+            var createEntityResponse = await _service.CreateAuctionBidAsync(auctionBidDto);
+            createEntityResponse.Success.Should().BeFalse();
+            createEntityResponse.Message.Should().BeEquivalentTo("Auction must be active");
+        }
     }
 }

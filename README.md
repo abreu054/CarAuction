@@ -48,3 +48,4 @@ Please ensure that your code is clean and efficient. You should aim for a soluti
 - It could have been worth it to use AutoMapper, but since the majority of the entities had very few attributes, did not configured it
 - The Vehicle ID is an int for performance and maintenance reasons, 
 - An Unique index for the unique identifier of the Vehicle was created instead
+- A scheduled job to Inactivate all Auctions that have ended should be created, probably an Azure function
