@@ -9,7 +9,7 @@
     <MudAppBar Elevation="1">
         <MudIconButton Icon="@Icons.Material.Filled.Menu" Color="Color.Inherit" Edge="Edge.Start" OnClick="@((e) => DrawerToggle())" />
         <MudPaper Class="d-flex align-content-center flex-wrap flex-grow-1 justify-center" Style="background-color:transparent!important;" Width="100%" Height="100%" Elevation="0">
-            <MudLink Underline="Underline.None" Href="/" Class="main-link-image" />
+            <MudText Typo="Typo.h5">Car Auction</MudText>
         </MudPaper>
         <MudSpacer />        
     </MudAppBar>
@@ -31,16 +31,7 @@
         _drawerOpen = !_drawerOpen;
     }
 
-    MudTheme CustomTheme = new MudTheme()
-        {
-            //Typography = new Typography()
-            //{
-            //    Default = new Default()
-            //    {
-            //            FontFamily = new[] { "Ysabeau", "Ysabeau", "Ysabeau", "Ysabeau" }
-            //    }
-            //}
-        };
+    MudTheme CustomTheme = new MudTheme();
 }
 
 <div id="blazor-error-ui">
