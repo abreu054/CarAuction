@@ -39,13 +39,12 @@ Please ensure that your code is clean and efficient. You should aim for a soluti
 
 ## Considerations
 
+- I have tried to separate all components, in order to follow SOLID principles as much as possible in the time frame
 - I would pass all the settings to an AzureAppConfiguration or AzureKeyVault
 - Would be nice to add a Cache layer that could be used by the DataRepository
 - VehicleType would be a Table, if the allowed vehicle types was not known, made as an enum for simplicity
 - We could move all AuctionBids to an History table for Auctions that are no longer active
 - The IdentityUser would be extended
 - It could have been worth it to use AutoMapper, but since the majority of the entities had very few attributes, did not configured it
-
-
 - The Vehicle ID is an int for performance and maintenance reasons, 
 - An Unique index for the unique identifier of the Vehicle was created instead
