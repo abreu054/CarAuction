@@ -40,8 +40,8 @@ namespace CarAuction.Structure.Services
             var auction = new Auction()
             {
                 AuctionStatus = auctionDto.AuctionStatus,
-                AuctionStartDate = auctionDto.AuctionStartDate,
-                AuctionEndDate = auctionDto.AuctionEndDate,
+                AuctionStartDate = new DateTime(auctionDto.AuctionStartDate.Year, auctionDto.AuctionStartDate.Month, auctionDto.AuctionStartDate.Day, 0, 0, 0),
+                AuctionEndDate = new DateTime(auctionDto.AuctionEndDate.Year, auctionDto.AuctionEndDate.Month, auctionDto.AuctionEndDate.Day, 0, 0, 0),
 
                 VehicleID = vehicle.VehicleID
             };
@@ -104,13 +104,23 @@ namespace CarAuction.Structure.Services
 
             if (updateAuctionDto.AuctionStartDate != null && updateAuctionDto.AuctionStartDate != existingAuction.AuctionStartDate)
             {
-                existingAuction.AuctionStartDate = updateAuctionDto.AuctionStartDate.Value;
+                existingAuction.AuctionStartDate = new DateTime(
+                    updateAuctionDto.AuctionStartDate.Value.Year,
+                    updateAuctionDto.AuctionStartDate.Value.Month,
+                    updateAuctionDto.AuctionStartDate.Value.Day,
+                    0, 0, 0);
+
                 updateAuction = true;
             }
 
             if (updateAuctionDto.AuctionEndDate != null && updateAuctionDto.AuctionEndDate != existingAuction.AuctionEndDate)
             {
-                existingAuction.AuctionEndDate = updateAuctionDto.AuctionEndDate.Value;
+                existingAuction.AuctionStartDate = new DateTime(
+                    updateAuctionDto.AuctionEndDate.Value.Year,
+                    updateAuctionDto.AuctionEndDate.Value.Month,
+                    updateAuctionDto.AuctionEndDate.Value.Day,
+                    0, 0, 0);
+
                 updateAuction = true;
             }
 
