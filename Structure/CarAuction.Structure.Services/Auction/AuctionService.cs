@@ -64,6 +64,12 @@ namespace CarAuction.Structure.Services
             var auctions = await auctionsRepository.SearchAsync(searchParamsDto);
             if (auctions is null || !auctions.Any()) return [];
 
+            // To ensure that if ScheduledJob fails to update the AuctionStatus, we still only return Live auctions
+            if(searchParamsDto.AuctionStatus != null && searchParamsDto.AuctionStatus == Business.Core.AuctionStatus.Active)
+            {
+                auctions = auctions.Where(a => a.AuctionStartDate < DateTime.UtcNow && a.AuctionEndDate > DateTime.UtcNow);
+            }
+
             return auctions.Select(auction => new AuctionDetailResponseDto()
             {
                 AuctionID = auction.AuctionID,

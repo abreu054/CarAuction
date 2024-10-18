@@ -25,7 +25,7 @@ namespace CarAuction.Structure.Services
             var auction = await auctionsRepository.GetByIDAsync(auctionBidDto.AuctionID);
             if (auction is null) return new(false, "There is no auction with the provided ID");
 
-            if (auction.AuctionStatus == Business.Core.AuctionStatus.Inactive || auction.AuctionEndDate < DateTime.UtcNow)
+            if (auction.AuctionStatus == Business.Core.AuctionStatus.Closed || auction.AuctionEndDate < DateTime.UtcNow)
                 return new(false, "Auction must be active");
 
             var user = await userManager.FindByIdAsync(auctionBidDto.UserID);

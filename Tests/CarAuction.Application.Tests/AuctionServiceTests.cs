@@ -81,7 +81,7 @@ namespace CarAuction.Application.Tests
         }
 
         [Fact]
-        public async Task CreateAuctionAsync_ShouldReturnFalse_WhenValidator_HasErrors()
+        public async Task CreateAuctionAsync_ShouldReturnFalse_WhenStartDate_GreaterThanEndDate()
         {
             var auctionDto = _fixture
                 .Build<CreateAuctionRequestDto>()
@@ -100,6 +100,29 @@ namespace CarAuction.Application.Tests
             var createEntityResponse = await _service.CreateAuctionAsync(auctionDto);
             createEntityResponse.Success.Should().BeFalse();
             createEntityResponse.Message.Should().BeEquivalentTo("Auction end date must be bigger than start date");
+        }
+
+        [Fact]
+        public async Task CreateAuctionAsync_ShouldReturnFalse_WhenStatus_Active_AndDates_NotValid()
+        {
+            var auctionDto = _fixture
+                .Build<CreateAuctionRequestDto>()
+                .With(dto => dto.AuctionStatus, Business.Core.AuctionStatus.Active)
+                .With(dto => dto.AuctionStartDate, DateTime.UtcNow.AddDays(1))
+                .With(dto => dto.AuctionEndDate, DateTime.UtcNow.AddDays(10))
+                .Create();
+
+            _vehicleRepositoryMock
+                .Setup(repo => repo.GetByIDAsync(auctionDto.VehicleID))
+                .ReturnsAsync(new Vehicle() { VehicleID = 1, VehicleUniqueIdentifier = "Test_1" });
+
+            _auctionRepositoryMock
+                .Setup(repo => repo.SearchAsync(It.IsAny<AuctionSearchParamsDto>()))
+                .ReturnsAsync([]);
+
+            var createEntityResponse = await _service.CreateAuctionAsync(auctionDto);
+            createEntityResponse.Success.Should().BeFalse();
+            createEntityResponse.Message.Should().BeEquivalentTo("Auction cannot be active when start and end dates are not valid");
         }
 
         [Fact]

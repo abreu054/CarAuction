@@ -28,6 +28,8 @@
                     <MudCardContent>
                         <MudText Typo="Typo.h5">@($"{auction.VehicleManufacturerName} {auction.VehicleModelName}")</MudText>
                         <MudText Typo="Typo.body1">Status: @auction.AuctionStatus</MudText>
+                        <MudText Typo="Typo.body1">Start date: @auction.AuctionStartDate.ToString("dd-MM-yyyy")</MudText>
+                        <MudText Typo="Typo.body1">End date: @auction.AuctionEndDate.ToString("dd-MM-yyyy")</MudText>
                         <MudText Typo="Typo.body2">Identifier: @($"{auction.VehicleUniqueIdentifier}")</MudText>
                         <MudText Typo="Typo.body2">Current bid: @auction.AuctionCurrentBid</MudText>
                     </MudCardContent>
@@ -59,7 +61,7 @@
         var form = new UpdateAuctionRequestDto()
         {
             AuctionID = auction.AuctionID,
-            AuctionStatus = auction.AuctionStatus == AuctionStatus.Active ? AuctionStatus.Inactive : AuctionStatus.Active
+            AuctionStatus = auction.AuctionStatus == AuctionStatus.Active ? AuctionStatus.Closed : AuctionStatus.Active
         };
 
         var httpResponseMessage = await httpClient.PatchAsJsonAsync<UpdateAuctionRequestDto>($"{navigationManager.BaseUri}api/auctions/{auction.AuctionID}", form);

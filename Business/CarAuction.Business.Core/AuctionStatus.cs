@@ -2,7 +2,7 @@
 {
     public enum AuctionStatus
     {
-        Inactive,
+        Closed,
         Active
     }
 }

@@ -71,7 +71,7 @@ namespace CarAuction.Application.Tests
 
             _auctionRepositoryMock
                 .Setup(repo => repo.GetByIDAsync(auctionBidDto.AuctionID))
-                .ReturnsAsync(new Auction() { AuctionStatus = Business.Core.AuctionStatus.Inactive });
+                .ReturnsAsync(new Auction() { AuctionStatus = Business.Core.AuctionStatus.Closed });
 
             var createEntityResponse = await _service.CreateAuctionBidAsync(auctionBidDto);
             createEntityResponse.Success.Should().BeFalse();
